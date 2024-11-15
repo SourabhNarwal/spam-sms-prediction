@@ -1,0 +1,55 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      # Install dependencies
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      # Log in to Docker using Render API key
+      - name: Log in to Render Container Registry
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          echo $RENDER_API_KEY | docker login registry.render.com -u render --password-stdin
+
+      # Build Docker image
+      - name: Build Docker image
+        run: docker build -t spam_sms_prediction .
+
+      # Tag Docker image for Render
+      - name: Tag Docker image
+        run: docker tag spam_sms_prediction registry.render.com/sourabhnarwal003/spam_sms_prediction:latest
+
+      # Push Docker image to Render
+      - name: Push Docker image
+        run: docker push registry.render.com/sourabhnarwal003/spam_sms_prediction:latest
+
+      # Deploy the updated image to Render
+      - name: Trigger Render Deployment
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          curl -X POST "https://api.render.com/v1/services/srv-csrng5dds78s7383gqjg/deploys" \
+          -H "Authorization: Bearer $RENDER_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{}'
