@@ -26,6 +26,11 @@ jobs:
           pip install --no-cache-dir -r requirements.txt
           pip install pytest 
 
+       # Step 4: Download NLTK data
+      - name: Download NLTK data
+        run: |
+          python -m nltk.downloader punkt punkt_tab stopwords
+
       - name: Run tests
         run: |
           pytest test_app.py --maxfail=1 --disable-warnings
