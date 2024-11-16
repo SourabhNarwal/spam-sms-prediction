@@ -27,8 +27,14 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+      
+      - name: Fix DNS resolution
+        run: echo "::1 localhost" | sudo tee -a /etc/hosts
 
       # Log in to Docker using Render API key
+      - name: Clear Docker cache
+        run: docker system prune -af
+
       - name: Log in to Render Container Registry
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
