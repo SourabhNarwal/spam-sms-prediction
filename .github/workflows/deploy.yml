@@ -1,4 +1,4 @@
-name: Deploy to Render
+name: CI Workflow
 
 on:
   push:
@@ -6,59 +6,26 @@ on:
       - main
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
-
+      
       - name: Clear Python cache
         run: sudo rm -rf /opt/hostedtoolcache/Python
 
-      # Set up Python environment
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.10.12
 
-      # Install dependencies
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-      
-      - name: Fix DNS resolution
-        run: echo "::1 localhost" | sudo tee -a /etc/hosts
+          pip install --no-cache-dir -r requirements.txt
 
-      # Log in to Docker using Render API key
-      - name: Clear Docker cache
-        run: docker system prune -af
-
-      - name: Log in to Render Container Registry
-        env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      - name: Run tests
         run: |
-          echo $RENDER_API_KEY | docker login registry.render.com -u render --password-stdin
+          pytest test_app.py --maxfail=1 --disable-warnings
 
-      # Build Docker image
-      - name: Build Docker image
-        run: docker build -t spam_sms_prediction .
-
-      # Tag Docker image for Render
-      - name: Tag Docker image
-        run: docker tag spam_sms_prediction registry.render.com/sourabhnarwal003/spam_sms_prediction:latest
-
-      # Push Docker image to Render
-      - name: Push Docker image
-        run: docker push registry.render.com/sourabhnarwal003/spam_sms_prediction:latest
-
-      # Deploy the updated image to Render
-      - name: Trigger Render Deployment
-        env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-        run: |
-          curl -X POST "https://api.render.com/v1/services/srv-csrng5dds78s7383gqjg/deploys" \
-          -H "Authorization: Bearer $RENDER_API_KEY" \
-          -H "Content-Type: application/json" \
-          -d '{}'
